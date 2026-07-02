@@ -9,7 +9,8 @@
 set -euo pipefail
 
 AEON_HOST="${1:-aeon}"
-DIR="$(cd "$(dirname "$0")" && pwd)"
+SELF="${BASH_SOURCE[0]:-$0}"
+DIR="$(cd "$(dirname "$(readlink -f "$SELF")")" && pwd)"
 STATE_DIR="${FLEET_DRIFT_STATE:-/var/lib/fleet-bridge-drift}"
 DEBOUNCE_SECS=3600
 

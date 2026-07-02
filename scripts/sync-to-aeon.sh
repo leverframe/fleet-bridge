@@ -7,7 +7,8 @@
 set -euo pipefail
 
 AEON_HOST="${1:-aeon}"
-DIR="$(cd "$(dirname "$0")" && pwd)"
+SELF="${BASH_SOURCE[0]:-$0}"
+DIR="$(cd "$(dirname "$(readlink -f "$SELF")")" && pwd)"
 TMP_NEW="$(mktemp)"
 TMP_OLD="$(mktemp)"
 trap 'rm -f "$TMP_NEW" "$TMP_OLD"' EXIT
