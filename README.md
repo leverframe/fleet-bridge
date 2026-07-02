@@ -1,14 +1,60 @@
 # fleet-bridge
 
-MCP server that exposes Jordan's OpenClaw fleet agents as tools for ZCode and Claude Code. v0.2.0 — streaming + git-tracked + token-sync scripts.
+MCP server that exposes Jordan's OpenClaw fleet agents + Hermes agents as tools for ZCode and Claude Code. v0.3.0 — sessions + Hermes integration.
 
 ## What it does
 
-Three tools over stdio MCP:
+Six tools over stdio MCP:
 
-- `list_agents()` → array of `{name, role, tier, host, port}` (no tokens in output)
-- `agent_health({name})` → calls `/health` on the agent, returns JSON
-- `invoke_agent({name, prompt, timeout_ms?})` → streams via OpenAI SSE internally, emits `notifications/progress` if client passes `_meta.progressToken`, returns assistant reply text
+- `list_agents()` → array of OpenClaw agents with `{name, role, tier, host, port}` (no tokens in output)
+- `agent_health({name})` → calls `/health` on the OpenClaw agent, returns JSON
+- `start_session({agent?})` → returns `{session_key}` for multi-turn conversations
+- `invoke_agent({name, prompt, timeout_ms?, session_key?})` → streams via OpenAI SSE internally; emits `notifications/progress` if client passes `_meta.progressToken`. Pass `session_key` for multi-turn.
+- `list_hermes_agents()` → array of Hermes agents with `{name, role, model, host}`
+- `invoke_hermes({name, prompt, timeout_ms?})` → SSH-spawns `hermes -z "<prompt>"` on the agent's host. Always stateless. Latency ~6-8s.
+
+## v0.3.0 highlights
+
+- **Sessions**: pass `session_key` (from `start_session`) to `invoke_agent` for multi-turn. OpenClaw persists conversation server-side under the key. Stateless when absent — full backward compat.
+- **Hermes integration**: invoke Miranda (PM, Gemini Flash) and Rooney (Research, Nemotron 550B) directly. Different transport (SSH + CLI) but same tool surface as OpenClaw agents.
+- Five tools before, six now.
+
+## OpenClaw agent coverage: all 15
+
+| Name | Role | Port | Tier |
+|---|---|---|---|
+| darlene | DevOps Lead | 18789 | 5-turbo |
+| kate | Frontend Specialist | 18790 | 5-turbo |
+| scully | SRE/Reliability | 18791 | 5-turbo |
+| donna | QA/Test Engineer | 18792 | 4.7 |
+| angela | Full-Stack Dev | 18793 | 4.7 |
+| cameron | Senior Builder | 18794 | 5-turbo |
+| shield (Trinity) | Security Specialist | 18795 | 4.7 |
+| lucy | Head of Dev | 18796 | 4.7 |
+| cj | Data Engineer | 18797 | 4.7 |
+| andy | Content & Social | 18798 | 4.7 |
+| jessica | Ops Manager | 18799 | 4.7 |
+| peggy | Exec Assistant / Discord Manager | 18800 | air |
+| wendy | Performance Coach | 18801 | 4.7 |
+| clifford | Fleet Generalist | 18802 | air |
+| ada | Tech Writer & Docs | 18803 | 4.7 |
+
+## Hermes agent coverage: 2 of 2
+
+| Name | Role | Model | Host |
+|---|---|---|---|
+| miranda | PM | Gemini 2.5 Flash | userve1 |
+| rooney | Research Analyst | NVIDIA Nemotron Ultra 550B | userve2 |
+
+## Files
+
+- `index.ts` — TypeScript source (v0.3.0: sessions + Hermes)
+- `dist/index.js` — compiled output (gitignored)
+- `agents.json` — OpenClaw agent registry with tokens (`chmod 600`, **gitignored**)
+- `hermes-agents.json` — Hermes agent registry with SSH targets (`chmod 600`, **gitignored**)
+- `package.json` / `tsconfig.json` — Node + TS config
+- `scripts/` — sync/drift scripts (run on AEON)
+- `.gitignore` — protects secrets
 
 ## Agent coverage: all 15 (Stage A + B shipped 2026-07-02)
 

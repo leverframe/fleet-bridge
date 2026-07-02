@@ -6,6 +6,7 @@ dist/
 
 # SECRETS — never commit
 agents.json
+hermes-agents.json
 *.token
 .env
 .env.*
