@@ -267,13 +267,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "list_agents",
       description:
-        "List OpenClaw fleet agents reachable through this bridge. Returns name, role, tier, host, port for each.",
+        "List fleet agents reachable through this bridge. Returns name, role, tier, host, port for each.",
       inputSchema: { type: "object", properties: {} },
     },
     {
       name: "agent_health",
       description:
-        "Check whether a specific fleet agent is healthy. Returns the OpenClaw /health JSON.",
+        "Check whether a specific fleet agent is healthy. Returns the agent gateway's /health JSON.",
       inputSchema: {
         type: "object",
         properties: { name: { type: "string" } },
@@ -283,7 +283,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "start_session",
       description:
-        "Generate a fresh session_key for multi-turn conversation with an OpenClaw agent. Pass the returned key to subsequent invoke_agent calls to preserve context. OpenClaw persists conversation state server-side under this key.",
+        "Generate a fresh session_key for multi-turn conversation with a fleet agent. Pass the returned key to subsequent invoke_agent calls to preserve context. Conversation state is persisted server-side by the agent gateway under this key.",
       inputSchema: {
         type: "object",
         properties: {
@@ -302,7 +302,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Agent name (e.g. 'donna')" },
+          name: { type: "string", description: "Agent name (e.g. 'researcher')" },
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
@@ -320,17 +320,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "list_hermes_agents",
       description:
-        "List Hermes agents (different runtime than OpenClaw — invoked via SSH + hermes CLI). Currently Miranda (PM, Gemini Flash) and Rooney (Research, Nemotron 550B).",
+        "List Hermes agents (different runtime than OpenClaw — invoked via SSH + hermes CLI). Returns name, role, model, host for each.",
       inputSchema: { type: "object", properties: {} },
     },
     {
       name: "invoke_hermes",
       description:
-        "Send a one-shot prompt to a Hermes agent via SSH. Always stateless — Hermes -z mode does not preserve context across calls. Latency ~6-8s.",
+        "Send a one-shot prompt to a Hermes agent via SSH. Always stateless — Hermes -z mode does not preserve context across calls.",
       inputSchema: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Hermes agent name (e.g. 'miranda')" },
+          name: { type: "string", description: "Hermes agent name (e.g. 'my-pm-agent')" },
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
