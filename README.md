@@ -1,105 +1,65 @@
 # fleet-bridge
 
-MCP server that exposes Jordan's OpenClaw fleet agents + Hermes agents as tools for ZCode and Claude Code. v0.3.0 — sessions + Hermes integration.
+MCP server that bridges OpenClaw gateway agents and Hermes agents to any MCP client. v0.3.0 — sessions + Hermes integration.
 
 ## What it does
 
 Six tools over stdio MCP:
 
 - `list_agents()` → array of OpenClaw agents with `{name, role, tier, host, port}` (no tokens in output)
-- `agent_health({name})` → calls `/health` on the OpenClaw agent, returns JSON
+- `agent_health({name})` → calls `/health` on the agent gateway, returns JSON
 - `start_session({agent?})` → returns `{session_key}` for multi-turn conversations
 - `invoke_agent({name, prompt, timeout_ms?, session_key?})` → streams via OpenAI SSE internally; emits `notifications/progress` if client passes `_meta.progressToken`. Pass `session_key` for multi-turn.
 - `list_hermes_agents()` → array of Hermes agents with `{name, role, model, host}`
-- `invoke_hermes({name, prompt, timeout_ms?})` → SSH-spawns `hermes -z "<prompt>"` on the agent's host. Always stateless. Latency ~6-8s.
+- `invoke_hermes({name, prompt, timeout_ms?})` → SSH-spawns `hermes -z "<prompt>"` on the agent's host. Always stateless.
 
 ## v0.3.0 highlights
 
-- **Sessions**: pass `session_key` (from `start_session`) to `invoke_agent` for multi-turn. OpenClaw persists conversation server-side under the key. Stateless when absent — full backward compat.
-- **Hermes integration**: invoke Miranda (PM, Gemini Flash) and Rooney (Research, Nemotron 550B) directly. Different transport (SSH + CLI) but same tool surface as OpenClaw agents.
+- **Sessions**: pass `session_key` (from `start_session`) to `invoke_agent` for multi-turn. The agent gateway persists conversation state server-side under the key. Stateless when absent — full backward compat.
+- **Hermes integration**: invoke Hermes agents (a different runtime — SSH + `hermes` CLI transport) through the same tool surface as OpenClaw agents.
 - Five tools before, six now.
 
-## OpenClaw agent coverage: all 15
+## Configuration
 
-| Name | Role | Port | Tier |
-|---|---|---|---|
-| darlene | DevOps Lead | 18789 | 5-turbo |
-| kate | Frontend Specialist | 18790 | 5-turbo |
-| scully | SRE/Reliability | 18791 | 5-turbo |
-| donna | QA/Test Engineer | 18792 | 4.7 |
-| angela | Full-Stack Dev | 18793 | 4.7 |
-| cameron | Senior Builder | 18794 | 5-turbo |
-| shield (Trinity) | Security Specialist | 18795 | 4.7 |
-| lucy | Head of Dev | 18796 | 4.7 |
-| cj | Data Engineer | 18797 | 4.7 |
-| andy | Content & Social | 18798 | 4.7 |
-| jessica | Ops Manager | 18799 | 4.7 |
-| peggy | Exec Assistant / Discord Manager | 18800 | air |
-| wendy | Performance Coach | 18801 | 4.7 |
-| clifford | Fleet Generalist | 18802 | air |
-| ada | Tech Writer & Docs | 18803 | 4.7 |
+The bridge is file-driven at startup. It reads two roster files (both `chmod 600`, **gitignored** — never commit them, they contain tokens/SSH details):
 
-## Hermes agent coverage: 2 of 2
+- `agents.json` — OpenClaw agents: `{"agents": [{"name", "role", "tier", "port", "host", "token"}]}`
+- `hermes-agents.json` — Hermes agents: `{"agents": [{"name", "role", "model", "host", "ssh_user", "binary"}]}`
 
-| Name | Role | Model | Host |
-|---|---|---|---|
-| miranda | PM | Gemini 2.5 Flash | userve1 |
-| rooney | Research Analyst | NVIDIA Nemotron Ultra 550B | userve2 |
+Paths default to the repo root; override with `FLEET_BRIDGE_AGENTS` / `FLEET_BRIDGE_HERMES`. Both fall back to an empty roster if missing — tools will report `unknown agent` until you provide a roster.
+
+Build `agents.json` from the live OpenClaw configs on the box running your agents (requires `jq`):
+
+```bash
+bash scripts/build-agents.json.sh /tmp/agents.json
+```
+
+The script scans `$HOME/.openclaw-*/openclaw.json` and extracts each agent's port and token. Set `FLEET_HOST` if the agents are reachable on a host other than the default (`127.0.0.1`). Copy the output to `agents.json` (or point `FLEET_BRIDGE_AGENTS` at it).
 
 ## Files
 
-- `index.ts` — TypeScript source (v0.3.0: sessions + Hermes)
+- `index.ts` — TypeScript source
 - `dist/index.js` — compiled output (gitignored)
 - `agents.json` — OpenClaw agent registry with tokens (`chmod 600`, **gitignored**)
 - `hermes-agents.json` — Hermes agent registry with SSH targets (`chmod 600`, **gitignored**)
 - `package.json` / `tsconfig.json` — Node + TS config
-- `scripts/` — sync/drift scripts (run on AEON)
-- `.gitignore` — protects secrets
-
-## Agent coverage: all 15 (Stage A + B shipped 2026-07-02)
-
-| Name | Role | Port | Tier |
-|---|---|---|---|
-| darlene | DevOps Lead | 18789 | 5-turbo |
-| kate | Frontend Specialist | 18790 | 5-turbo |
-| scully | SRE/Reliability | 18791 | 5-turbo |
-| donna | QA/Test Engineer | 18792 | 4.7 |
-| angela | Full-Stack Dev | 18793 | 4.7 |
-| cameron | Senior Builder | 18794 | 5-turbo |
-| shield (Trinity) | Security Specialist | 18795 | 4.7 |
-| lucy | Head of Dev | 18796 | 4.7 |
-| cj | Data Engineer | 18797 | 4.7 |
-| andy | Content & Social | 18798 | 4.7 |
-| jessica | Ops Manager | 18799 | 4.7 |
-| peggy | Exec Assistant / Discord Manager | 18800 | air |
-| wendy | Performance Coach | 18801 | 4.7 |
-| clifford | Fleet Generalist | 18802 | air |
-| ada | Tech Writer & Docs | 18803 | 4.7 |
-
-## Files
-
-- `index.ts` — TypeScript source (v0.2.0: SSE streaming + progress notifications)
-- `dist/index.js` — compiled output (gitignored)
-- `agents.json` — agent registry with tokens (`chmod 600`, **gitignored**)
-- `package.json` / `tsconfig.json` — Node + TS config
-- `scripts/` — sync/drift scripts (run on userve1)
+- `scripts/` — roster build + internal fleet ops scripts (see below)
 - `.gitignore` — protects secrets
 
 ## Development
 
 ```bash
-cd ~/.claude/mcp-servers/fleet-bridge
 npm install
 npm run build          # recompile after editing index.ts
 ```
 
-Smoke test (no ZCode/CC needed):
+Smoke test (no MCP client needed) — substitute an agent name from your roster:
 
 ```bash
 printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"invoke_agent","arguments":{"name":"donna","prompt":"reply with exactly: pong"}}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"invoke_agent","arguments":{"name":"my-agent","prompt":"reply with exactly: pong"}}}' \
   | node dist/index.js
 ```
 
@@ -109,7 +69,7 @@ For streaming test (with progress notifications):
 printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"invoke_agent","arguments":{"name":"donna","prompt":"count to 10"},"_meta":{"progressToken":"t1"}}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"invoke_agent","arguments":{"name":"my-agent","prompt":"count to 10"},"_meta":{"progressToken":"t1"}}}' \
   | node dist/index.js
 ```
 
@@ -117,53 +77,33 @@ Expect multiple `notifications/progress` messages before the final `tools/call` 
 
 ## agents.json management (operators)
 
-`agents.json` is the runtime artifact — never commit it. Tokens are pulled from live OpenClaw configs by the build script.
+`agents.json` is a runtime artifact — never commit it. Tokens are pulled from live OpenClaw configs by the build script.
 
-**Build locally on userve1:**
+**Build locally on the box running your OpenClaw agents:**
 ```bash
 bash scripts/build-agents.json.sh /tmp/agents.json
 ```
 
-**Sync to AEON (idempotent):**
-```bash
-bash scripts/sync-to-aeon.sh aeon
-```
-
-**Drift check (cron-friendly):**
-```bash
-bash scripts/drift-check.sh aeon
-# exit 0 = no drift, 1 = drift + alert sent, 2 = fetch failed
-```
+`scripts/sync-to-aeon.sh` and `scripts/drift-check.sh` are **internal fleet ops scripts** — not required for using fleet-bridge. They are kept for the maintainer's deployment (pull-sync the roster from an ops host; cron-friendly drift detection with debounced alerts). Adapt them to your own deployment if useful.
 
 ## Adding a new agent
 
-1. Set up the OpenClaw agent on userve1 (port assigned, chatCompletions enabled in config, bind = tailnet).
-2. Restart the agent to pick up the new config: `sudo systemctl restart openclaw-<name>`.
-3. Add name + role + tier to `scripts/build-agents.json.sh` (the `ROLES` and `TIERS` associative arrays).
-4. Commit + push.
-5. On userve1: `cd /opt/fleet-bridge-ops && git pull && bash scripts/sync-to-aeon.sh aeon`.
-6. Restart ZCode/CC.
+1. Set up the OpenClaw agent (port assigned, chatCompletions enabled in its config) and restart its service to pick up the config.
+2. Re-run `scripts/build-agents.json.sh` — it auto-discovers agents from `$HOME/.openclaw-*/openclaw.json`.
+3. Deploy the refreshed roster (`agents.json` or `FLEET_BRIDGE_AGENTS`) and restart your MCP client.
 
 ## Token rotation flow
 
-1. Rotate one agent's token on userve1:
-   ```bash
-   sudo jq '.gateway.auth.token = "NEW_TOKEN"' /home/newell/.openclaw-<name>/openclaw.json > /tmp/x
-   sudo install -m 600 -o newell -g newell /tmp/x /home/newell/.openclaw-<name>/openclaw.json
-   sudo systemctl restart openclaw-<name>
-   ```
-2. Run sync: `bash /opt/fleet-bridge-ops/scripts/sync-to-aeon.sh aeon`
-3. Restart ZCode/CC.
+1. Rotate the token in the agent's `$HOME/.openclaw-<name>/openclaw.json` and restart that agent's service.
+2. Re-run the build script and deploy the refreshed roster.
+3. Restart your MCP client.
 
-The hourly drift-check cron will catch rotation events you forget to sync.
+If you deploy the drift-check script, it will catch rotation events you forget to sync.
 
 ## Operator notes
 
-- **Streaming**: invokes use `stream: true` internally for fast perceived feedback. Progress notifications only emit when client passes `_meta.progressToken`. ZCode/CC client support for progress notifications is implementation-dependent — verify in your client.
-- **Timeout**: default 60s. Override per-call with `timeout_ms`. Long deploys (Darlene, Cameron) may need 120s+.
+- **Streaming**: invokes use `stream: true` internally for fast perceived feedback. Progress notifications only emit when client passes `_meta.progressToken`. Client support for progress notifications is implementation-dependent — verify in your client.
+- **Timeout**: default 60s. Override per-call with `timeout_ms`. Long-running tasks may need 120s+.
+- **Transport security**: agent traffic is plain `http://`. Run the bridge on a trusted network (loopback, LAN, or a private overlay) — do not expose agent gateways to the public internet.
 - **Backward compat**: clients without progressToken get the same final result, just no intermediate updates.
-- **Debug**: agent-side: `journalctl -u openclaw-<name> -f` on userve1. Bridge-side: run smoke test above.
-
-## Why "shield" not "trinity"
-
-OpenClaw uses `shield` as the system identifier (profile dir, service name, port assignment) even though the user-facing name is "Trinity". The bridge uses `shield` for consistency with the underlying system.
+- **Debug**: agent-side: `journalctl` on the agent host (OpenClaw systemd units log there). Bridge-side: run the smoke test above.
