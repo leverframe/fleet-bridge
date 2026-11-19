@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Pull a fresh agents.json from userve1 (source of truth) to this machine.
-# Runs ON AEON (or any machine that can SSH to userve1). This direction is used
-# because userve1 → AEON SSH has a Windows OpenSSH MAC compatibility bug.
+# INTERNAL fleet ops script — not required for using fleet-bridge; kept for
+# the maintainer's deployment. Pulls a freshly built agents.json from an ops
+# host (where the OpenClaw configs live) to the machine running the bridge.
 #
-# Usage: sync-to-aeon.sh [userve1-ssh-alias]
-# Default alias: userve1 (configure in ~/.ssh/config or pass explicit host).
+# Usage: sync-to-aeon.sh <ssh-alias-of-ops-host>
+# Configure the alias in ~/.ssh/config or pass an explicit host.
 #
 # Idempotent: skips scp if local agents.json already matches the build.
 set -euo pipefail
 
-USERVE1="${1:-userve1}"
+REMOTE="${1:?usage: sync-to-aeon.sh <ssh-alias-of-ops-host>}"
 SELF="${BASH_SOURCE[0]:-$0}"
 DIR="$(cd "$(dirname "$(readlink -f "$SELF")")" && pwd)"
 
@@ -18,8 +18,9 @@ TMP_NEW="$(mktemp)"
 TMP_OLD="$(mktemp)"
 trap 'rm -f "$TMP_NEW" "$TMP_OLD"' EXIT
 
-# Build on userve1 (reads live OpenClaw configs as source of truth)
-ssh "$USERVE1" "bash /opt/fleet-bridge-ops/scripts/build-agents.json.sh /tmp/agents-$$.json && cat /tmp/agents-$$.json && rm /tmp/agents-$$.json" > "$TMP_NEW"
+# Build on the ops host (reads live OpenClaw configs as source of truth)
+OPS_DIR="${FLEET_BRIDGE_OPS_DIR:-/opt/fleet-bridge-ops}"
+ssh "$REMOTE" "bash $OPS_DIR/scripts/build-agents.json.sh /tmp/agents-$$.json && cat /tmp/agents-$$.json && rm /tmp/agents-$$.json" > "$TMP_NEW"
 
 # Compare against current deployed
 if [ -f "$LOCAL_PATH" ]; then
@@ -36,5 +37,5 @@ mkdir -p "$(dirname "$LOCAL_PATH")"
 install -m 600 "$TMP_NEW" "$LOCAL_PATH"
 echo "synced to $LOCAL_PATH"
 echo ""
-echo "NOTE: ZCode and Claude Code cache agents.json at process start."
+echo "NOTE: MCP clients cache agents.json at process start."
 echo "      Restart them to pick up token changes."

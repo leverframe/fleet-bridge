@@ -1,44 +1,31 @@
 #!/usr/bin/env bash
-# Build agents.json for fleet-bridge from live OpenClaw configs on userve1.
-# Tokens read from /home/newell/.openclaw-<name>/openclaw.json — no tokens hardcoded here.
+# Build agents.json for fleet-bridge from the OpenClaw configs on this box.
+# Scans $HOME/.openclaw-<name>/openclaw.json for every agent found and extracts
+# its gateway port + auth token — no agents or tokens hardcoded here.
 # Output: $1 (default: /tmp/agents.json)
 set -euo pipefail
 
 OUTPUT="${1:-/tmp/agents.json}"
+HOST="${FLEET_HOST:-127.0.0.1}"
 
-declare -A ROLES=(
-  [ada]="Tech Writer & Docs"        [andy]="Content & Social"
-  [angela]="Full-Stack Dev"         [cameron]="Senior Builder"
-  [cj]="Data Engineer"              [clifford]="Fleet Generalist"
-  [darlene]="DevOps Lead"           [donna]="QA/Test Engineer"
-  [jessica]="Ops Manager"           [kate]="Frontend Specialist"
-  [lucy]="Head of Dev"              [peggy]="Exec Assistant / Discord Manager"
-  [scully]="SRE/Reliability"        [shield]="Security Specialist (Trinity)"
-  [wendy]="Performance Coach"
-)
-declare -A TIERS=(
-  [ada]="4.7"      [andy]="4.7"     [angela]="4.7"   [cameron]="5-turbo"
-  [cj]="4.7"       [clifford]="air" [darlene]="5-turbo" [donna]="4.7"
-  [jessica]="4.7"  [kate]="5-turbo" [lucy]="4.7"     [peggy]="air"
-  [scully]="5-turbo" [shield]="4.7" [wendy]="4.7"
-)
-HOST="${FLEET_HOST:-100.116.218.123}"
-AGENTS_LIST="ada andy angela cameron cj clifford darlene donna jessica kate lucy peggy scully shield wendy"
-
+shopt -s nullglob
 MISSING=()
 (
-  for a in $AGENTS_LIST; do
-    cfg="$HOME/.openclaw-$a/openclaw.json"
+  for cfg in "$HOME"/.openclaw-*/openclaw.json; do
+    a="$(basename "$(dirname "$cfg")")"
+    a="${a#.openclaw-}"
     if [ ! -r "$cfg" ]; then
       MISSING+=("$a")
       continue
     fi
-    port=$(jq -r .gateway.port "$cfg")
-    token=$(jq -r .gateway.auth.token "$cfg")
+    port=$(jq -r '.gateway.port' "$cfg")
+    token=$(jq -r '.gateway.auth.token' "$cfg")
+    role=$(jq -r '.gateway.role // "agent"' "$cfg")
+    tier=$(jq -r '.gateway.tier // ""' "$cfg")
     jq -n \
       --arg n "$a" \
-      --arg r "${ROLES[$a]}" \
-      --arg t "${TIERS[$a]}" \
+      --arg r "$role" \
+      --arg t "$tier" \
       --argjson p "$port" \
       --arg h "$HOST" \
       --arg tok "$token" \

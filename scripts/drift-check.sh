@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Compare local agents.json (on this machine) against expected built from userve1.
-# Runs ON AEON (or any machine that can SSH to userve1). Alerts via notify.sh on
-# userve2 if drift detected. Debounced 1hr per alert type.
+# INTERNAL fleet ops script — not required for using fleet-bridge; kept for
+# the maintainer's deployment. Compares the local agents.json against one
+# freshly built on an ops host (where the OpenClaw configs live), with a
+# 1hr debounce. Designed for hourly cron on the machine running the bridge.
 #
-# Designed for hourly cron on AEON. Exit codes:
+# Exit codes:
 #   0 = no drift (or debounced)
-#   1 = drift detected + alert sent
+#   1 = drift detected (alert hook runs, if configured)
 #   2 = couldn't build expected or read local
 set -euo pipefail
 
-USERVE1="${1:-userve1}"
+REMOTE="${1:?usage: drift-check.sh <ssh-alias-of-ops-host>}"
 SELF="${BASH_SOURCE[0]:-$0}"
 DIR="$(cd "$(dirname "$(readlink -f "$SELF")")" && pwd)"
 STATE_DIR="${FLEET_DRIFT_STATE:-$HOME/.fleet-bridge-drift}"
@@ -21,9 +22,10 @@ LOCAL_PATH="${FLEET_BRIDGE_AGENTS:-$HOME/.claude/mcp-servers/fleet-bridge/agents
 EXPECTED="$(mktemp)"
 trap 'rm -f "$EXPECTED"' EXIT
 
-# Build expected by SSH'ing to userve1
-if ! ssh "$USERVE1" "bash /opt/fleet-bridge-ops/scripts/build-agents.json.sh /tmp/agents-$$.json && cat /tmp/agents-$$.json && rm /tmp/agents-$$.json" > "$EXPECTED" 2>/dev/null; then
-  echo "ERROR: couldn't build expected via $USERVE1" >&2
+# Build expected by SSH'ing to the ops host
+OPS_DIR="${FLEET_BRIDGE_OPS_DIR:-/opt/fleet-bridge-ops}"
+if ! ssh "$REMOTE" "bash $OPS_DIR/scripts/build-agents.json.sh /tmp/agents-$$.json && cat /tmp/agents-$$.json && rm /tmp/agents-$$.json" > "$EXPECTED" 2>/dev/null; then
+  echo "ERROR: couldn't build expected via $REMOTE" >&2
   exit 2
 fi
 
@@ -58,12 +60,17 @@ diff -u \
   <(jq -S '.agents | map({name, port, token}) | sort_by(.name)' "$LOCAL_PATH") \
   <(jq -S '.agents | map({name, port, token}) | sort_by(.name)' "$EXPECTED") | head -50 || true
 
-# Alert via notify.sh on userve2
-MSG="fleet-bridge token drift: local agents.json doesn't match userve1 configs. Run: bash ~/.claude/mcp-servers/fleet-bridge/scripts/sync-to-aeon.sh"
-if ssh newell@100.115.150.19 "notify.sh --channel infra-alerts '$MSG'" 2>/dev/null; then
-  echo "alert sent via notify.sh"
+# Alert hook (optional): set ALERT_CMD to a shell command that takes the
+# alert message as $1. The original fleet-specific notify.sh leg was removed.
+MSG="fleet-bridge token drift: local agents.json doesn't match ops-host configs. Run: bash scripts/sync-to-aeon.sh"
+if [ -n "${ALERT_CMD:-}" ]; then
+  if "$ALERT_CMD" "$MSG"; then
+    echo "alert sent"
+  else
+    echo "WARN: ALERT_CMD failed, drift details logged above" >&2
+  fi
 else
-  echo "WARN: notify.sh unreachable, drift details logged above" >&2
+  echo "WARN: no ALERT_CMD configured, drift details logged above" >&2
 fi
 
 exit 1
