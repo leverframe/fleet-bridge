@@ -1,0 +1,12 @@
+{
+  "agents": [
+    {
+      "name": "scribe",
+      "role": "Technical Writer",
+      "model": "gemini-2.5-flash",
+      "host": "127.0.0.1",
+      "ssh_user": "deploy",
+      "binary": "/usr/local/bin/hermes"
+    }
+  ]
+}

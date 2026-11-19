@@ -1,0 +1,28 @@
+{
+  "agents": [
+    {
+      "name": "researcher",
+      "role": "Research Analyst",
+      "tier": "pro",
+      "port": 18800,
+      "host": "127.0.0.1",
+      "token": "REPLACE_WITH_GATEWAY_TOKEN"
+    },
+    {
+      "name": "coder",
+      "role": "Full-Stack Developer",
+      "tier": "pro",
+      "port": 18801,
+      "host": "127.0.0.1",
+      "token": "REPLACE_WITH_GATEWAY_TOKEN"
+    },
+    {
+      "name": "reviewer",
+      "role": "Code Review",
+      "tier": "free",
+      "port": 18802,
+      "host": "127.0.0.1",
+      "token": "REPLACE_WITH_GATEWAY_TOKEN"
+    }
+  ]
+}
