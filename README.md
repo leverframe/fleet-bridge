@@ -1,6 +1,24 @@
-# fleet-bridge
+<div align="center">
+
+<img src="assets/bite.svg" alt="Leverframe bite mark" width="96" />
+
+# `fleet-bridge`
 
 Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.
+
+[![npm version](https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=111213&color=FFB000)](https://www.npmjs.com/package/fleet-bridge)
+[![CI](https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=111213&color=FFB000)](https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-FFB000?style=flat-square&labelColor=111213)](LICENSE)
+
+**Quickstart**
+
+```bash
+npx fleet-bridge
+```
+
+</div>
+
+---
 
 fleet-bridge is a stdio MCP server that gives one tool surface across two agent
 runtimes: OpenClaw gateway agents over HTTP (`/v1/chat/completions`) and Hermes
