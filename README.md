@@ -4,31 +4,36 @@
 
 <p align="center">Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.</p>
 
-[![npm version](https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=475569&color=4F46E5)](https://www.npmjs.com/package/fleet-bridge)
-[![CI](https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=475569&color=4F46E5)](https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-4F46E5?style=flat-square&labelColor=475569)](LICENSE)
+<p align="center">
+<a href="https://www.npmjs.com/package/fleet-bridge"><img src="https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=475569&color=4F46E5" alt="npm version"></a>
+<a href="https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=475569&color=4F46E5" alt="CI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-4F46E5?style=flat-square&labelColor=475569" alt="MIT license"></a>
+</p>
 
-**Quickstart**
+<p align="center"><a href="docs/QUICKSTART.md"><strong>Quickstart</strong></a> · <a href="https://docs.leverframe.dev/fleet-bridge/">Documentation</a></p>
 
 ```bash
 npx fleet-bridge
 ```
 
-</div>
-
 ---
 
-fleet-bridge is a stdio MCP server that gives one tool surface across two agent
-runtimes: OpenClaw gateway agents over HTTP (`/v1/chat/completions`) and Hermes
-agents over SSH (`hermes -z`). Any MCP client — Zed, Claude Code, or anything
-else that speaks MCP — sees a single list of tools and invokes any agent by
-name. Conversation state for multi-turn sessions lives server-side in the agent
-gateways; the bridge itself is stateless and reads its rosters once at startup.
-Tokens never leave the box running the bridge — every tool output strips them.
+Your agents already exist. They live on an OpenClaw gateway, or on a box
+somewhere running Hermes. The problem is getting at them: every client wants a
+different integration, every runtime speaks a different protocol.
 
-**v0.1.1** · MIT licensed · [Full documentation](https://docs.leverframe.dev/fleet-bridge/)
+fleet-bridge says no to all of that. It's one stdio MCP server. Point Zed,
+Claude Code, or any MCP client at it, and every agent on your fleet shows up
+as a tool you call by name.
 
-## Architecture
+<p align="center">
+  <img src="docs/assets/terminal-banner.svg" width="420" alt="fleet-bridge at a glance: openclaw and hermes agents ready, stdio MCP, tokens stripped">
+</p>
+
+> **Tokens never leave the box running the bridge.** Every tool output strips
+> agent tokens and SSH details before the client sees them.
+
+## How it fits together
 
 ```mermaid
 flowchart LR
@@ -38,7 +43,7 @@ flowchart LR
     subgraph hermes["Hermes agents"]
         HA["ssh {user}@{host}<br/>{binary} -z 'prompt'"]
     end
-    BRIDGE["fleet-bridge<br/>stdio MCP server<br/><br/>reads agents.json +<br/>hermes-agents.json<br/>at startup<br/><br/>tokens never leave the box"]
+    BRIDGE["fleet-bridge<br/>stdio MCP server<br/><br/>reads agents.json +<br/>hermes-agents.json<br/>at startup"]
     subgraph clients["MCP clients"]
         Z["Zed"]
         C["Claude Code"]
@@ -49,63 +54,65 @@ flowchart LR
     BRIDGE -- "stdio JSON-RPC (MCP)" --> clients
 ```
 
+Three properties worth knowing:
+
+- **Stateless.** The bridge reads its rosters once at startup and holds
+  nothing. Multi-turn conversation state lives in the agent gateways, where it
+  already was.
+- **File-driven.** Two JSON files define your fleet. Edit, restart, done.
+- **Two runtimes, one shape.** OpenClaw agents over HTTP, Hermes agents over
+  SSH — both flatten into the same six-tool surface.
+
 ## Tools
 
 | Tool | What it does |
 |---|---|
-| `list_agents` | List OpenClaw agents with `{name, role, tier, host, port}` (token stripped) |
-| `agent_health` | Call the agent gateway's `/health` and return its JSON |
-| `start_session` | Generate a `session_key` for multi-turn conversation (state is persisted by the gateway, not the bridge) |
-| `invoke_agent` | Send a prompt to an OpenClaw agent; streams internally, supports `session_key` and `timeout_ms` |
-| `list_hermes_agents` | List Hermes agents with `{name, role, model, host}` (SSH user and binary path stripped) |
-| `invoke_hermes` | One-shot prompt to a Hermes agent via SSH; always stateless |
+| `list_agents` | List OpenClaw agents — `{name, role, tier, host, port}`, token stripped |
+| `agent_health` | Hit the agent gateway's `/health`, return its JSON |
+| `start_session` | Mint a `session_key` for multi-turn conversation (gateway-side state) |
+| `invoke_agent` | Prompt an OpenClaw agent; streams, supports `session_key` + `timeout_ms` |
+| `list_hermes_agents` | List Hermes agents — `{name, role, model, host}`, SSH details stripped |
+| `invoke_hermes` | One-shot prompt to a Hermes agent; always stateless |
 
-`invoke_agent` and `invoke_hermes` emit `notifications/progress` when the
-client passes `_meta.progressToken`; clients without it get the same final
-result with no intermediate updates.
+Both invoke tools emit `notifications/progress` when the client passes
+`_meta.progressToken`; without it you get the same final result, just quieter.
 
-## Configuration
+## Point it at your fleet
 
-The bridge is file-driven at startup. It reads two roster files (both
-`chmod 600`, **gitignored** — they contain tokens and SSH details):
+The bridge reads two roster files at startup — both `chmod 600`, both
+gitignored, because they hold tokens and SSH details:
 
-- `agents.json` — OpenClaw agents: `{"agents": [{"name", "role", "tier", "model?", "port", "host", "token"}]}`
-- `hermes-agents.json` — Hermes agents: `{"agents": [{"name", "role", "model?", "host", "ssh_user", "binary"}]}`
+- `agents.json` — OpenClaw: `{"agents": [{"name", "role", "tier", "model?", "port", "host", "token"}]}`
+- `hermes-agents.json` — Hermes: `{"agents": [{"name", "role", "model?", "host", "ssh_user", "binary"}]}`
 
-Both fall back to an empty roster if missing; edit a roster and restart the
-bridge. See [`docs/CONFIG.md`](docs/CONFIG.md) for the full field reference.
+Missing file, empty roster — the bridge starts anyway. Full field reference in
+[`docs/CONFIG.md`](docs/CONFIG.md).
 
-Environment variables:
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `FLEET_BRIDGE_AGENTS` | `<repoRoot>/agents.json` | Path to the OpenClaw roster |
-| `FLEET_BRIDGE_HERMES` | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster |
-| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | 5000 | Abort timeout for `agent_health` HTTP calls |
-| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | 60000 | Default timeout for `invoke_agent` / `invoke_hermes` when the call omits `timeout_ms` |
-
-Build an OpenClaw roster from the live gateway configs on the box running your
-agents (requires `jq`):
+On the box running your OpenClaw agents, build the roster from the live
+gateway configs:
 
 ```bash
 bash scripts/build-agents.json.sh /tmp/agents.json
 ```
 
-The script scans `$HOME/.openclaw-*/openclaw.json` and extracts each agent's
-port and token. Set `FLEET_HOST` if the agents are reachable on a host other
-than the default (`127.0.0.1`). Copy the output to `agents.json` or point
-`FLEET_BRIDGE_AGENTS` at it. To add or rotate an agent: change its OpenClaw
-config, re-run the script, redeploy the roster, restart your MCP client.
+It scans `$HOME/.openclaw-*/openclaw.json` for ports and tokens. Set
+`FLEET_HOST` if agents aren't on `127.0.0.1`. Add or rotate an agent: change
+the OpenClaw config, re-run, redeploy, restart your client.
 
-## Quickstart
+| Variable | Default | Purpose |
+|---|---|---|
+| `FLEET_BRIDGE_AGENTS` | `<repoRoot>/agents.json` | Path to the OpenClaw roster |
+| `FLEET_BRIDGE_HERMES` | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster |
+| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | `5000` | Abort timeout for `agent_health` |
+| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | `60000` | Default invoke timeout when the call omits `timeout_ms` |
 
-[`docs/QUICKSTART.md`](docs/QUICKSTART.md) walks through install, roster
-setup, and wiring the bridge into an MCP client.
+## Prove it works
 
-Smoke test without an MCP client — build first (`npm install && npm run
-build`), substitute an agent name from your roster:
+No MCP client needed. Build, swap in an agent name from your roster:
 
 ```bash
+npm install && npm run build
+
 printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
@@ -113,31 +120,17 @@ printf '%s\n' \
   | node dist/index.js
 ```
 
-Streaming variant (progress notifications):
-
-```bash
-printf '%s\n' \
-  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
-  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"invoke_agent","arguments":{"name":"my-agent","prompt":"count to 10"},"_meta":{"progressToken":"t1"}}}' \
-  | node dist/index.js
-```
-
-Expect at least one `notifications/progress` message before the final `tools/call`
-result. Bridge-side debugging beyond this: run the smoke test above; agent-side
-faults usually show in `journalctl` on the agent host (OpenClaw runs as systemd
-units).
+Expect `pong` from a real agent. Add `"_meta":{"progressToken":"t1"}` to the
+`tools/call` params to watch streaming progress notifications roll in.
+Beyond that: agent-side faults usually show in `journalctl` on the agent host
+(OpenClaw runs as systemd units).
 
 ## Security
 
-- Agent traffic is plain `http://` by design. Run the bridge on a network you
-  trust (loopback, LAN, or a private overlay) — do not expose agent gateways to
-  the public internet. No TLS option in v0.1.
-- Tokens (`agents.json`) and SSH details (`ssh_user`, `binary` in
-  `hermes-agents.json`) are stripped from all tool outputs and never leave the
-  box running the bridge.
-- Roster files are gitignored; keep them `chmod 600` and out of any synced or
-  backed-up tree you don't control.
+Agent traffic is plain `http://` by design. Run the bridge where the agents
+are — loopback, LAN, or a private overlay. Don't expose agent gateways to the
+public internet; there is no TLS option in v0.1. Keep roster files `chmod 600`
+and out of any synced tree you don't control.
 
 ## License
 
