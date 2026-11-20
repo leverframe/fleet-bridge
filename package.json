@@ -1,7 +1,7 @@
 {
   "name": "fleet-bridge",
   "version": "0.3.0",
-  "description": "MCP server that bridges OpenClaw gateway agents and Hermes agents to any MCP client",
+  "description": "stdio MCP server bridging OpenClaw + Hermes fleet agents to any MCP client",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
