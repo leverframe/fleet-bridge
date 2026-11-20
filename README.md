@@ -2,9 +2,7 @@
   <img src="docs/assets/fleet-bridge-logo-dark.svg" width="380" alt="fleet-bridge">
 </p>
 
-# fleet-bridge
-
-Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.
+<p align="center">Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.</p>
 
 [![npm version](https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=475569&color=4F46E5)](https://www.npmjs.com/package/fleet-bridge)
 [![CI](https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=475569&color=4F46E5)](https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml)
