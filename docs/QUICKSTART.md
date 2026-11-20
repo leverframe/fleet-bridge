@@ -119,7 +119,7 @@ printf '%s\n' \
 Expected:
 
 - The first response line carries
-  `"serverInfo":{"name":"fleet-bridge","version":"0.1.0"}`.
+  `"serverInfo":{"name":"fleet-bridge","version":"0.1.1"}`.
 - `tools/list` returns six tools (`list_agents`, `agent_health`,
   `start_session`, `invoke_agent`, `list_hermes_agents`,
   `invoke_hermes`).

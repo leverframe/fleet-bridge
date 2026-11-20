@@ -1,9 +1,12 @@
 {
   "name": "fleet-bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "stdio MCP server bridging OpenClaw + Hermes fleet agents to any MCP client",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "fleet-bridge": "bin/fleet-bridge.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",

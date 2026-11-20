@@ -267,7 +267,7 @@ async function invokeHermes(
 }
 
 const server = new Server(
-  { name: "fleet-bridge", version: "0.1.0" },
+  { name: "fleet-bridge", version: "0.1.1" },
   { capabilities: { tools: {} } }
 );
 
