@@ -98,13 +98,13 @@ See `hermes-agents.example.json` for a working skeleton.
 |---|---|---|---|
 | `FLEET_BRIDGE_AGENTS` | shipped | `<repoRoot>/agents.json` | Path to the OpenClaw roster. |
 | `FLEET_BRIDGE_HERMES` | shipped | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster. |
-| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | **planned — not yet read by the code** | 5000 | Abort timeout for `agent_health` HTTP calls. Today this is hardcoded to 5000 ms. |
-| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | **planned — not yet read by the code** | 60000 | Default timeout for `invoke_agent` / `invoke_hermes` when the call omits `timeout_ms`. Today this default is hardcoded to 60000 ms. |
+| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | shipped | 5000 | Abort timeout for `agent_health` HTTP calls. |
+| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | shipped | 60000 | Default timeout for `invoke_agent` / `invoke_hermes` when the call omits `timeout_ms`. |
 
-The two `*_TIMEOUT_MS` variables are part of the documented v0.1
-config surface; the code change to honor them is tracked separately.
-Per-call `timeout_ms` (tool argument) already works and overrides the
-default when set.
+Non-numeric or non-positive values for the two `*_TIMEOUT_MS`
+variables fall back silently to the default (no error at startup).
+Per-call `timeout_ms` (tool argument) overrides the invoke default
+when set.
 
 ## Scaling from one agent to twenty
 

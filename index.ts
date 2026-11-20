@@ -48,6 +48,14 @@ function loadJson<T>(path: string, fallback: T): T {
 const AGENTS: AgentEntry[] = loadJson<{ agents: AgentEntry[] }>(AGENTS_PATH, { agents: [] }).agents;
 const HERMES: HermesEntry[] = loadJson<{ agents: HermesEntry[] }>(HERMES_PATH, { agents: [] }).agents;
 
+function parseTimeoutMs(raw: string | undefined, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+const HEALTH_TIMEOUT_MS = parseTimeoutMs(process.env.FLEET_BRIDGE_HEALTH_TIMEOUT_MS, 5000);
+const INVOKE_TIMEOUT_MS = parseTimeoutMs(process.env.FLEET_BRIDGE_INVOKE_TIMEOUT_MS, 60000);
+
 function findAgent(name: string): AgentEntry | undefined {
   return AGENTS.find((a) => a.name === name);
 }
@@ -58,7 +66,7 @@ function findHermes(name: string): HermesEntry | undefined {
 
 async function agentHealth(a: AgentEntry): Promise<object> {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 5000);
+  const t = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT_MS);
   try {
     const r = await fetch(`http://${a.host}:${a.port}/health`, {
       signal: ctrl.signal,
@@ -306,7 +314,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
-            description: "Optional timeout in milliseconds (default 60000)",
+            description: `Optional timeout in milliseconds (default ${INVOKE_TIMEOUT_MS})`,
           },
           session_key: {
             type: "string",
@@ -334,7 +342,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
-            description: "Optional timeout in milliseconds (default 60000)",
+            description: `Optional timeout in milliseconds (default ${INVOKE_TIMEOUT_MS})`,
           },
         },
         required: ["name", "prompt"],
@@ -381,7 +389,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const a = findAgent(String(args?.name ?? ""));
       if (!a) throw new Error(`unknown agent: ${args?.name}`);
       const prompt = String(args?.prompt ?? "");
-      const timeoutMs = Number(args?.timeout_ms ?? 60000);
+      const timeoutMs = Number(args?.timeout_ms ?? INVOKE_TIMEOUT_MS);
       const sessionKey = args?.session_key ? String(args.session_key) : null;
       const progress = makeProgressEmitter(extra);
       const reply = await invokeAgentStreamed(a, prompt, timeoutMs, sessionKey, progress);
@@ -397,7 +405,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const h = findHermes(String(args?.name ?? ""));
       if (!h) throw new Error(`unknown hermes agent: ${args?.name}`);
       const prompt = String(args?.prompt ?? "");
-      const timeoutMs = Number(args?.timeout_ms ?? 60000);
+      const timeoutMs = Number(args?.timeout_ms ?? INVOKE_TIMEOUT_MS);
       const progress = makeProgressEmitter(extra);
       const reply = await invokeHermes(h, prompt, timeoutMs, progress);
       return { content: [{ type: "text", text: reply }] };
