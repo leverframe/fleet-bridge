@@ -16,6 +16,10 @@ Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.
 npx fleet-bridge
 ```
 
+<img src="assets/loader.svg" alt="Leverframe loader — a lever throw; pull = invoke an agent" width="120" />
+
+*pull = invoke an agent*
+
 </div>
 
 ---
