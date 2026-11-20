@@ -1,24 +1,20 @@
-<div align="center">
+<p align="center">
+  <img src="docs/assets/fleet-bridge-logo-dark.svg" width="380" alt="fleet-bridge">
+</p>
 
-<img src="assets/bite.svg" alt="Leverframe bite mark" width="96" />
-
-# `fleet-bridge`
+# fleet-bridge
 
 Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.
 
-[![npm version](https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=111213&color=FFB000)](https://www.npmjs.com/package/fleet-bridge)
-[![CI](https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=111213&color=FFB000)](https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-FFB000?style=flat-square&labelColor=111213)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/fleet-bridge?style=flat-square&labelColor=475569&color=4F46E5)](https://www.npmjs.com/package/fleet-bridge)
+[![CI](https://img.shields.io/github/actions/workflow/status/leverframe/fleet-bridge/ci.yml?branch=main&style=flat-square&label=CI&labelColor=475569&color=4F46E5)](https://github.com/leverframe/fleet-bridge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-4F46E5?style=flat-square&labelColor=475569)](LICENSE)
 
 **Quickstart**
 
 ```bash
 npx fleet-bridge
 ```
-
-<img src="assets/loader.svg" alt="Leverframe loader — a lever throw; pull = invoke an agent" width="120" />
-
-*pull = invoke an agent*
 
 </div>
 
