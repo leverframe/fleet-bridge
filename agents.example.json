@@ -4,6 +4,7 @@
       "name": "researcher",
       "role": "Research Analyst",
       "tier": "pro",
+      "model": "openclaw",
       "port": 18800,
       "host": "127.0.0.1",
       "token": "REPLACE_WITH_GATEWAY_TOKEN"

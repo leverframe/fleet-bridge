@@ -32,6 +32,7 @@ Top-level shape: `{"agents": [ ... ]}`. One array entry = one agent.
       "name": "researcher",
       "role": "Research Analyst",
       "tier": "pro",
+      "model": "openclaw",
       "port": 18800,
       "host": "127.0.0.1",
       "token": "<gateway auth token>"
@@ -45,6 +46,7 @@ Top-level shape: `{"agents": [ ... ]}`. One array entry = one agent.
 | `name` | string | yes | Unique. The value clients pass to `invoke_agent`, `agent_health`, `start_session`. |
 | `role` | string | yes | Free text, shown in `list_agents` output. |
 | `tier` | string | no | Your own model-tier metadata (e.g. `pro`, `free`). Passed through to `list_agents`; unused by the bridge. |
+| `model` | string | no | Model name sent in the chat-completions body. Defaults to `openclaw` when omitted, which is what OpenClaw gateways expect — point it at any OpenAI-compatible gateway by setting a real model name. |
 | `port` | number | yes | Gateway port. The bridge calls `http://{host}:{port}/health` and `/v1/chat/completions`. |
 | `host` | string | yes | IP or hostname of the gateway. |
 | `token` | string | yes | Gateway auth token, sent as `Authorization: Bearer {token}`. |

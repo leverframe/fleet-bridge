@@ -14,6 +14,7 @@ interface AgentEntry {
   name: string;
   role: string;
   tier: string;
+  model?: string;
   port: number;
   host: string;
   token: string;
@@ -129,7 +130,7 @@ async function invokeAgentStreamed(
     headers,
     body: JSON.stringify({
       messages: [{ role: "user", content: prompt }],
-      model: "openclaw",
+      model: a.model ?? "openclaw",
       stream: true,
     }),
     signal: ctrl.signal,
