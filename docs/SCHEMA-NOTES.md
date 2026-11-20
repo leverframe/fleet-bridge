@@ -33,21 +33,16 @@ wrapper stays as the documented shape.
 
 ## Per-agent optional `model` for OpenClaw agents
 
-Proposal: add an optional per-agent `model` field to `AgentEntry`,
-replacing the hardcoded `model: "openclaw"` literal in every
-chat-completions body (`index.ts:124`).
+Decided: **shipped in public v0.1.0.** `AgentEntry` carries an optional
+`model` field; when absent, the chat-completions body sends
+`model: "openclaw"` (preserves behavior for existing rosters).
 
-- Rationale: the literal is an OpenClaw-gateway contract baked into
+- Rationale: the literal was an OpenClaw-gateway contract baked into
   code. A per-agent field lets operators point the bridge at any
   OpenAI-compatible gateway without touching source, and is consistent
   with `HermesEntry` already carrying `model`.
-- Suggested semantics: `model` optional on `AgentEntry`; when absent,
-  the body sends `model: "openclaw"` (preserves current behavior for
-  existing rosters).
-- **Code change required — flagged for the sanitizer / follow-up agent.**
-  Touch points: `AgentEntry` interface, the request body in
-  `invokeAgentStreamed` (`index.ts:122-126`), `list_agents` output
-  already passes extra fields through (`index.ts:350` strips only
+- Touch points as implemented: `AgentEntry` interface, the request body
+  in `invokeAgentStreamed`, `list_agents` output (strips only
   `token`), `docs/CONFIG.md` schema table, `agents.example.json`.
 
 ## Optional `tier` on AgentEntry
@@ -81,8 +76,10 @@ them). They are fleet-topology-specific by design:
   a debounced alert leg that SSHes to a second box to run a notify
   script. The alert leg is pure private infra and was already pointing
   at a decommissioned host pre-extraction.
-- `build-agents.json.sh` reads the `$HOME/.openclaw-<name>/openclaw.json`
-  layout and embeds the full agent roster by name — same problem class.
+- a private roster-generator variant (not to be confused with the
+  generic `scripts/build-agents.json.sh` that DOES ship) read the
+  `$HOME/.openclaw-<name>/openclaw.json` layout and embedded the full
+  agent roster by name — same problem class.
 
 A generic equivalent (any ssh source, any destination, any alert
 command) is post-v0.1 work if there is demand. For v0.1, operators
@@ -92,6 +89,6 @@ the rosters are small JSON files and hand-maintenance is fine at
 
 ## Version string
 
-`index.ts:261` and `package.json` both carry `0.3.0` from the private
-line. Public v0.1.0 restarts the version at `0.1.0` — both spots need
-the bump (server metadata + manifest).
+The private line carried `0.3.0` in both spots (server metadata +
+manifest). Public v0.1.0 restarts the version at `0.1.0`; both were
+bumped, and `package-lock.json`'s root version was synced to match.

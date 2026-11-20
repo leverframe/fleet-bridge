@@ -107,7 +107,7 @@ printf '%s\n' \
   | node dist/index.js
 ```
 
-Expect multiple `notifications/progress` messages before the final `tools/call`
+Expect at least one `notifications/progress` message before the final `tools/call`
 result. Bridge-side debugging beyond this: run the smoke test above; agent-side
 faults usually show in `journalctl` on the agent host (OpenClaw runs as systemd
 units).
