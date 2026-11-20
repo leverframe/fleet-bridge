@@ -8,8 +8,7 @@ dist/
 agents.json
 hermes-agents.json
 *.token
-.env
-.env.*
+.env*
 
 # Editor / OS noise
 .DS_Store
