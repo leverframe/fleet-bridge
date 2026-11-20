@@ -1,59 +1,93 @@
 # fleet-bridge
 
-MCP server that bridges OpenClaw gateway agents and Hermes agents to any MCP client. v0.3.0 — sessions + Hermes integration.
+Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.
 
-## What it does
+fleet-bridge is a stdio MCP server that gives one tool surface across two agent
+runtimes: OpenClaw gateway agents over HTTP (`/v1/chat/completions`) and Hermes
+agents over SSH (`hermes -z`). Any MCP client — Zed, Claude Code, or anything
+else that speaks MCP — sees a single list of tools and invokes any agent by
+name. Conversation state for multi-turn sessions lives server-side in the agent
+gateways; the bridge itself is stateless and reads its rosters once at startup.
+Tokens never leave the box running the bridge — every tool output strips them.
 
-Six tools over stdio MCP:
+**v0.1.0** · MIT licensed
 
-- `list_agents()` → array of OpenClaw agents with `{name, role, tier, host, port}` (no tokens in output)
-- `agent_health({name})` → calls `/health` on the agent gateway, returns JSON
-- `start_session({agent?})` → returns `{session_key}` for multi-turn conversations
-- `invoke_agent({name, prompt, timeout_ms?, session_key?})` → streams via OpenAI SSE internally; emits `notifications/progress` if client passes `_meta.progressToken`. Pass `session_key` for multi-turn.
-- `list_hermes_agents()` → array of Hermes agents with `{name, role, model, host}`
-- `invoke_hermes({name, prompt, timeout_ms?})` → SSH-spawns `hermes -z "<prompt>"` on the agent's host. Always stateless.
+## Architecture
 
-## v0.3.0 highlights
+```mermaid
+flowchart LR
+    subgraph openclaw["OpenClaw gateway agents"]
+        OA["/v1/chat/completions<br/>+ /health"]
+    end
+    subgraph hermes["Hermes agents"]
+        HA["ssh {user}@{host}<br/>{binary} -z 'prompt'"]
+    end
+    BRIDGE["fleet-bridge<br/>stdio MCP server<br/><br/>reads agents.json +<br/>hermes-agents.json<br/>at startup<br/><br/>tokens never leave the box"]
+    subgraph clients["MCP clients"]
+        Z["Zed"]
+        C["Claude Code"]
+        X["any MCP client"]
+    end
+    OA -- "http :port/v1/chat/completions<br/>(Bearer token)" --> BRIDGE
+    HA -- "SSH" --> BRIDGE
+    BRIDGE -- "stdio JSON-RPC (MCP)" --> clients
+```
 
-- **Sessions**: pass `session_key` (from `start_session`) to `invoke_agent` for multi-turn. The agent gateway persists conversation state server-side under the key. Stateless when absent — full backward compat.
-- **Hermes integration**: invoke Hermes agents (a different runtime — SSH + `hermes` CLI transport) through the same tool surface as OpenClaw agents.
-- Five tools before, six now.
+## Tools
+
+| Tool | What it does |
+|---|---|
+| `list_agents` | List OpenClaw agents with `{name, role, tier, host, port}` (token stripped) |
+| `agent_health` | Call the agent gateway's `/health` and return its JSON |
+| `start_session` | Generate a `session_key` for multi-turn conversation (state is persisted by the gateway, not the bridge) |
+| `invoke_agent` | Send a prompt to an OpenClaw agent; streams internally, supports `session_key` and `timeout_ms` |
+| `list_hermes_agents` | List Hermes agents with `{name, role, model, host}` (SSH user and binary path stripped) |
+| `invoke_hermes` | One-shot prompt to a Hermes agent via SSH; always stateless |
+
+`invoke_agent` and `invoke_hermes` emit `notifications/progress` when the
+client passes `_meta.progressToken`; clients without it get the same final
+result with no intermediate updates.
 
 ## Configuration
 
-The bridge is file-driven at startup. It reads two roster files (both `chmod 600`, **gitignored** — never commit them, they contain tokens/SSH details):
+The bridge is file-driven at startup. It reads two roster files (both
+`chmod 600`, **gitignored** — they contain tokens and SSH details):
 
-- `agents.json` — OpenClaw agents: `{"agents": [{"name", "role", "tier", "port", "host", "token"}]}`
-- `hermes-agents.json` — Hermes agents: `{"agents": [{"name", "role", "model", "host", "ssh_user", "binary"}]}`
+- `agents.json` — OpenClaw agents: `{"agents": [{"name", "role", "tier", "model?", "port", "host", "token"}]}`
+- `hermes-agents.json` — Hermes agents: `{"agents": [{"name", "role", "model?", "host", "ssh_user", "binary"}]}`
 
-Paths default to the repo root; override with `FLEET_BRIDGE_AGENTS` / `FLEET_BRIDGE_HERMES`. Both fall back to an empty roster if missing — tools will report `unknown agent` until you provide a roster.
+Both fall back to an empty roster if missing; edit a roster and restart the
+bridge. See [`docs/CONFIG.md`](docs/CONFIG.md) for the full field reference.
 
-Build `agents.json` from the live OpenClaw configs on the box running your agents (requires `jq`):
+Environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FLEET_BRIDGE_AGENTS` | `<repoRoot>/agents.json` | Path to the OpenClaw roster |
+| `FLEET_BRIDGE_HERMES` | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster |
+| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | 5000 | Abort timeout for `agent_health` HTTP calls |
+| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | 60000 | Default timeout for `invoke_agent` / `invoke_hermes` when the call omits `timeout_ms` |
+
+Build an OpenClaw roster from the live gateway configs on the box running your
+agents (requires `jq`):
 
 ```bash
 bash scripts/build-agents.json.sh /tmp/agents.json
 ```
 
-The script scans `$HOME/.openclaw-*/openclaw.json` and extracts each agent's port and token. Set `FLEET_HOST` if the agents are reachable on a host other than the default (`127.0.0.1`). Copy the output to `agents.json` (or point `FLEET_BRIDGE_AGENTS` at it).
+The script scans `$HOME/.openclaw-*/openclaw.json` and extracts each agent's
+port and token. Set `FLEET_HOST` if the agents are reachable on a host other
+than the default (`127.0.0.1`). Copy the output to `agents.json` or point
+`FLEET_BRIDGE_AGENTS` at it. To add or rotate an agent: change its OpenClaw
+config, re-run the script, redeploy the roster, restart your MCP client.
 
-## Files
+## Quickstart
 
-- `index.ts` — TypeScript source
-- `dist/index.js` — compiled output (gitignored)
-- `agents.json` — OpenClaw agent registry with tokens (`chmod 600`, **gitignored**)
-- `hermes-agents.json` — Hermes agent registry with SSH targets (`chmod 600`, **gitignored**)
-- `package.json` / `tsconfig.json` — Node + TS config
-- `scripts/` — roster build + internal fleet ops scripts (see below)
-- `.gitignore` — protects secrets
+[`docs/QUICKSTART.md`](docs/QUICKSTART.md) walks through install, roster
+setup, and wiring the bridge into an MCP client.
 
-## Development
-
-```bash
-npm install
-npm run build          # recompile after editing index.ts
-```
-
-Smoke test (no MCP client needed) — substitute an agent name from your roster:
+Smoke test without an MCP client — build first (`npm install && npm run
+build`), substitute an agent name from your roster:
 
 ```bash
 printf '%s\n' \
@@ -63,7 +97,7 @@ printf '%s\n' \
   | node dist/index.js
 ```
 
-For streaming test (with progress notifications):
+Streaming variant (progress notifications):
 
 ```bash
 printf '%s\n' \
@@ -73,34 +107,22 @@ printf '%s\n' \
   | node dist/index.js
 ```
 
-Expect multiple `notifications/progress` messages before the final `tools/call` result.
+Expect multiple `notifications/progress` messages before the final `tools/call`
+result. Bridge-side debugging beyond this: run the smoke test above; agent-side
+faults usually show in `journalctl` on the agent host (OpenClaw runs as systemd
+units).
 
-## agents.json management (operators)
+## Security
 
-`agents.json` is a runtime artifact — never commit it. Tokens are pulled from live OpenClaw configs by the build script.
+- Agent traffic is plain `http://` by design. Run the bridge on a network you
+  trust (loopback, LAN, or a private overlay) — do not expose agent gateways to
+  the public internet. No TLS option in v0.1.
+- Tokens (`agents.json`) and SSH details (`ssh_user`, `binary` in
+  `hermes-agents.json`) are stripped from all tool outputs and never leave the
+  box running the bridge.
+- Roster files are gitignored; keep them `chmod 600` and out of any synced or
+  backed-up tree you don't control.
 
-**Build locally on the box running your OpenClaw agents:**
-```bash
-bash scripts/build-agents.json.sh /tmp/agents.json
-```
+## License
 
-
-## Adding a new agent
-
-1. Set up the OpenClaw agent (port assigned, chatCompletions enabled in its config) and restart its service to pick up the config.
-2. Re-run `scripts/build-agents.json.sh` — it auto-discovers agents from `$HOME/.openclaw-*/openclaw.json`.
-3. Deploy the refreshed roster (`agents.json` or `FLEET_BRIDGE_AGENTS`) and restart your MCP client.
-
-## Token rotation flow
-
-1. Rotate the token in the agent's `$HOME/.openclaw-<name>/openclaw.json` and restart that agent's service.
-2. Re-run the build script and deploy the refreshed roster.
-3. Restart your MCP client.
-
-## Operator notes
-
-- **Streaming**: invokes use `stream: true` internally for fast perceived feedback. Progress notifications only emit when client passes `_meta.progressToken`. Client support for progress notifications is implementation-dependent — verify in your client.
-- **Timeout**: default 60s. Override per-call with `timeout_ms`. Long-running tasks may need 120s+.
-- **Transport security**: agent traffic is plain `http://`. Run the bridge on a trusted network (loopback, LAN, or a private overlay) — do not expose agent gateways to the public internet.
-- **Backward compat**: clients without progressToken get the same final result, just no intermediate updates.
-- **Debug**: agent-side: `journalctl` on the agent host (OpenClaw systemd units log there). Bridge-side: run the smoke test above.
+[MIT](LICENSE)

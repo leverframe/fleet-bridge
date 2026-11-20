@@ -60,28 +60,25 @@ documented as optional. No code change needed (no runtime validation).
 
 Documented in `docs/CONFIG.md` as planned:
 
-- `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` (default 5000) — today hardcoded at
-  `index.ts:61` (`setTimeout(() => ctrl.abort(), 5000)`).
-- `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` (default 60000) — today hardcoded at
-  `index.ts:384` and `index.ts:400` (`Number(args?.timeout_ms ?? 60000)`),
-  and stated in two tool descriptions (`index.ts:309`, `index.ts:338`).
+- `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` (default 5000) — **shipped**: read at
+  module load, overrides the hardcoded abort timeout in `agentHealth`.
+- `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` (default 60000) — **shipped**: read at
+  module load and used as the default when an invoke call omits
+  `timeout_ms`; surfaced in both invoke tool descriptions.
 
-**The code does not read either variable yet.** Implementation is
-follow-up work; the doc says so explicitly so operators aren't
-surprised.
+Non-numeric or non-positive values fall back silently to the default.
 
-## Ops scripts: drift-check.sh + sync-to-aeon.sh DROPPED from public v0.1
+## Internal ops scripts DROPPED from public v0.1
 
-Ruling (Jordan, 2026-11-19): **both dropped from the public tree.** They live on
-in the maintainer's private deployment; restoring later is trivial (git history
-keeps them). Both are
-fleet-topology-specific by design:
+Ruling (2026-11-19): **dropped from the public tree.** They live on in the
+maintainer's private deployment; restoring later is trivial (git history keeps
+them). They are fleet-topology-specific by design:
 
-- `sync-to-aeon.sh` — copies a roster from one named machine to another
-  over a fixed ssh-alias convention; direction and defaults are this
-  fleet's topology.
-- `drift-check.sh` — hourly cron diff of roster vs live configs plus a
-  debounced alert leg that SSHes to a second box to run a notify
+- a roster-sync script — copies a roster from one named machine to
+  another over a fixed ssh-alias convention; direction and defaults are
+  this fleet's topology.
+- a drift-check script — hourly cron diff of roster vs live configs plus
+  a debounced alert leg that SSHes to a second box to run a notify
   script. The alert leg is pure private infra and was already pointing
   at a decommissioned host pre-extraction.
 - `build-agents.json.sh` reads the `$HOME/.openclaw-<name>/openclaw.json`
