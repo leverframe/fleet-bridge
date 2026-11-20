@@ -10,7 +10,7 @@ name. Conversation state for multi-turn sessions lives server-side in the agent
 gateways; the bridge itself is stateless and reads its rosters once at startup.
 Tokens never leave the box running the bridge — every tool output strips them.
 
-**v0.1.1** · MIT licensed
+**v0.1.1** · MIT licensed · [Full documentation](https://docs.leverframe.dev/fleet-bridge/)
 
 ## Architecture
 
