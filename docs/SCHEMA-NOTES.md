@@ -70,9 +70,11 @@ Documented in `docs/CONFIG.md` as planned:
 follow-up work; the doc says so explicitly so operators aren't
 surprised.
 
-## Ops scripts: drop drift-check.sh + sync-to-aeon.sh from public v0.1
+## Ops scripts: drift-check.sh + sync-to-aeon.sh DROPPED from public v0.1
 
-Recommendation: **exclude both from the public v0.1 tree.** Both are
+Ruling (Jordan, 2026-11-19): **both dropped from the public tree.** They live on
+in the maintainer's private deployment; restoring later is trivial (git history
+keeps them). Both are
 fleet-topology-specific by design:
 
 - `sync-to-aeon.sh` — copies a roster from one named machine to another
