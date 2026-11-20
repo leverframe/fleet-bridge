@@ -84,6 +84,7 @@ Expect multiple `notifications/progress` messages before the final `tools/call` 
 bash scripts/build-agents.json.sh /tmp/agents.json
 ```
 
+`scripts/sync-to-aeon.sh` and `scripts/drift-check.sh` are **internal fleet ops scripts** — not required for using fleet-bridge. They are kept for the maintainer's deployment (pull-sync the roster from an ops host; cron-friendly drift detection with debounced alerts). Adapt them to your own deployment if useful.
 
 ## Adding a new agent
 
@@ -96,6 +97,8 @@ bash scripts/build-agents.json.sh /tmp/agents.json
 1. Rotate the token in the agent's `$HOME/.openclaw-<name>/openclaw.json` and restart that agent's service.
 2. Re-run the build script and deploy the refreshed roster.
 3. Restart your MCP client.
+
+If you deploy the drift-check script, it will catch rotation events you forget to sync.
 
 ## Operator notes
 
