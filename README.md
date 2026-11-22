@@ -36,7 +36,7 @@ as a tool you call by name.
 ## How it fits together
 
 <p align="center">
-  <img src="docs/assets/runtimes-diagram.png" width="830" alt="Two runtimes, one tool surface: OpenClaw over HTTP and Hermes over SSH, bridged to Zed, Claude Code, and any MCP client">
+  <img src="docs/assets/how-it-fits.svg" width="830" alt="How Leverframe fits together: MCP clients such as Claude Code and Zed connect to fleet-bridge, one stdio MCP server with gated levers, which connects to the OpenClaw gateway and Hermes agent runtimes; wranglebot and tractum emit records in the open .curt conversation format">
 </p>
 
 Three properties worth knowing:
