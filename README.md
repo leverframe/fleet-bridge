@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/fleet-bridge-logo-dark.svg" width="380" alt="fleet-bridge">
+  <img src="docs/assets/banner.png" width="830" alt="fleet-bridge — by leverframe">
 </p>
 
 <p align="center">Bridge your OpenClaw gateway agents and Hermes agents to any MCP client.</p>
@@ -35,24 +35,9 @@ as a tool you call by name.
 
 ## How it fits together
 
-```mermaid
-flowchart LR
-    subgraph openclaw["OpenClaw gateway agents"]
-        OA["/v1/chat/completions<br/>+ /health"]
-    end
-    subgraph hermes["Hermes agents"]
-        HA["ssh {user}@{host}<br/>{binary} -z 'prompt'"]
-    end
-    BRIDGE["fleet-bridge<br/>stdio MCP server<br/><br/>reads agents.json +<br/>hermes-agents.json<br/>at startup"]
-    subgraph clients["MCP clients"]
-        Z["Zed"]
-        C["Claude Code"]
-        X["any MCP client"]
-    end
-    OA -- "http :port/v1/chat/completions<br/>(Bearer token)" --> BRIDGE
-    HA -- "SSH" --> BRIDGE
-    BRIDGE -- "stdio JSON-RPC (MCP)" --> clients
-```
+<p align="center">
+  <img src="docs/assets/runtimes-diagram.png" width="830" alt="Two runtimes, one tool surface: OpenClaw over HTTP and Hermes over SSH, bridged to Zed, Claude Code, and any MCP client">
+</p>
 
 Three properties worth knowing:
 
