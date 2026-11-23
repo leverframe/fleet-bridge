@@ -36,7 +36,7 @@ as a tool you call by name.
 ## How it fits together
 
 <p align="center">
-  <img src="docs/assets/how-it-fits.png" width="830" alt="How Leverframe fits together: MCP clients such as Claude Code and Zed connect to fleet-bridge, one stdio MCP server with gated levers, which connects to the OpenClaw gateway and Hermes agent runtimes; wranglebot and tractum emit records in the open .curt conversation format">
+  <img src="https://github.com/leverframe/fleet-bridge/raw/main/docs/assets/how-it-fits.png" width="830" alt="How Leverframe fits together: MCP clients such as Claude Code and Zed connect to fleet-bridge, one stdio MCP server with gated levers, which connects to the OpenClaw gateway and Hermes agent runtimes; wranglebot and tractum emit records in the open .curt conversation format">
 </p>
 
 Three properties worth knowing:
