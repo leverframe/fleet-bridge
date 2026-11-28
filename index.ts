@@ -46,16 +46,26 @@ function loadJson<T>(path: string, fallback: T): T {
   }
 }
 
-const AGENTS: AgentEntry[] = loadJson<{ agents: AgentEntry[] }>(AGENTS_PATH, { agents: [] }).agents;
-const HERMES: HermesEntry[] = loadJson<{ agents: HermesEntry[] }>(HERMES_PATH, { agents: [] }).agents;
+const AGENTS: AgentEntry[] = loadJson<{ agents: AgentEntry[] }>(AGENTS_PATH, {
+  agents: [],
+}).agents;
+const HERMES: HermesEntry[] = loadJson<{ agents: HermesEntry[] }>(HERMES_PATH, {
+  agents: [],
+}).agents;
 
 function parseTimeoutMs(raw: string | undefined, fallback: number): number {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-const HEALTH_TIMEOUT_MS = parseTimeoutMs(process.env.FLEET_BRIDGE_HEALTH_TIMEOUT_MS, 5000);
-const INVOKE_TIMEOUT_MS = parseTimeoutMs(process.env.FLEET_BRIDGE_INVOKE_TIMEOUT_MS, 60000);
+const HEALTH_TIMEOUT_MS = parseTimeoutMs(
+  process.env.FLEET_BRIDGE_HEALTH_TIMEOUT_MS,
+  5000,
+);
+const INVOKE_TIMEOUT_MS = parseTimeoutMs(
+  process.env.FLEET_BRIDGE_INVOKE_TIMEOUT_MS,
+  60000,
+);
 
 function findAgent(name: string): AgentEntry | undefined {
   return AGENTS.find((a) => a.name === name);
@@ -108,7 +118,7 @@ async function invokeAgentStreamed(
   prompt: string,
   timeoutMs: number,
   sessionKey: string | null,
-  progress: ProgressEmitter | null
+  progress: ProgressEmitter | null,
 ): Promise<string> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -186,12 +196,13 @@ async function invokeAgentStreamed(
         const now = Date.now();
         const sinceTime = now - lastProgress >= PROGRESS_INTERVAL_MS;
         const sinceChars =
-          accumulated.length > 0 && accumulated.length % PROGRESS_EVERY_CHARS < 50;
+          accumulated.length > 0 &&
+          accumulated.length % PROGRESS_EVERY_CHARS < 50;
         if (sinceTime || sinceChars) {
           await progress.sendProgress(
             accumulated.length,
             -1,
-            `Generated ${accumulated.length} chars`
+            `Generated ${accumulated.length} chars`,
           );
           lastProgress = now;
         }
@@ -208,7 +219,7 @@ async function invokeHermes(
   h: HermesEntry,
   prompt: string,
   timeoutMs: number,
-  progress: ProgressEmitter | null
+  progress: ProgressEmitter | null,
 ): Promise<string> {
   if (progress) {
     await progress.sendProgress(0, -1, `Connecting to ${h.name} over SSH...`);
@@ -219,8 +230,10 @@ async function invokeHermes(
   // side wrapped in single quotes — wrap here, escape any embedded quotes.
   const shellEscaped = `'${prompt.replace(/'/g, `'\\''`)}'`;
   const args = [
-    "-o", "BatchMode=yes",
-    "-o", "ConnectTimeout=10",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
     sshTarget,
     h.binary,
     "-z",
@@ -256,11 +269,7 @@ async function invokeHermes(
       if (code === 0) {
         resolve(stdout.trim());
       } else {
-        reject(
-          new Error(
-            `${h.name} exited ${code}: ${stderr.slice(0, 300)}`
-          )
-        );
+        reject(new Error(`${h.name} exited ${code}: ${stderr.slice(0, 300)}`));
       }
     });
   });
@@ -268,7 +277,7 @@ async function invokeHermes(
 
 const server = new Server(
   { name: "fleet-bridge", version: "0.1.1" },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -311,7 +320,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Agent name (e.g. 'researcher')" },
+          name: {
+            type: "string",
+            description: "Agent name (e.g. 'researcher')",
+          },
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
@@ -339,7 +351,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Hermes agent name (e.g. 'my-pm-agent')" },
+          name: {
+            type: "string",
+            description: "Hermes agent name (e.g. 'my-pm-agent')",
+          },
           prompt: { type: "string", description: "User message to send" },
           timeout_ms: {
             type: "number",
@@ -393,11 +408,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
       const timeoutMs = Number(args?.timeout_ms ?? INVOKE_TIMEOUT_MS);
       const sessionKey = args?.session_key ? String(args.session_key) : null;
       const progress = makeProgressEmitter(extra);
-      const reply = await invokeAgentStreamed(a, prompt, timeoutMs, sessionKey, progress);
+      const reply = await invokeAgentStreamed(
+        a,
+        prompt,
+        timeoutMs,
+        sessionKey,
+        progress,
+      );
       return { content: [{ type: "text", text: reply }] };
     }
     if (name === "list_hermes_agents") {
-      const visible = HERMES.map(({ ssh_user: _u, binary: _b, ...rest }) => rest);
+      const visible = HERMES.map(
+        ({ ssh_user: _u, binary: _b, ...rest }) => rest,
+      );
       return {
         content: [{ type: "text", text: JSON.stringify(visible, null, 2) }],
       };
