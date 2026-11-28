@@ -50,14 +50,14 @@ Three properties worth knowing:
 
 ## Tools
 
-| Tool | What it does |
-|---|---|
-| `list_agents` | List OpenClaw agents — `{name, role, tier, host, port}`, token stripped |
-| `agent_health` | Hit the agent gateway's `/health`, return its JSON |
-| `start_session` | Mint a `session_key` for multi-turn conversation (gateway-side state) |
-| `invoke_agent` | Prompt an OpenClaw agent; streams, supports `session_key` + `timeout_ms` |
-| `list_hermes_agents` | List Hermes agents — `{name, role, model, host}`, SSH details stripped |
-| `invoke_hermes` | One-shot prompt to a Hermes agent; always stateless |
+| Tool                 | What it does                                                             |
+| -------------------- | ------------------------------------------------------------------------ |
+| `list_agents`        | List OpenClaw agents — `{name, role, tier, host, port}`, token stripped  |
+| `agent_health`       | Hit the agent gateway's `/health`, return its JSON                       |
+| `start_session`      | Mint a `session_key` for multi-turn conversation (gateway-side state)    |
+| `invoke_agent`       | Prompt an OpenClaw agent; streams, supports `session_key` + `timeout_ms` |
+| `list_hermes_agents` | List Hermes agents — `{name, role, model, host}`, SSH details stripped   |
+| `invoke_hermes`      | One-shot prompt to a Hermes agent; always stateless                      |
 
 Both invoke tools emit `notifications/progress` when the client passes
 `_meta.progressToken`; without it you get the same final result, just quieter.
@@ -84,12 +84,12 @@ It scans `$HOME/.openclaw-*/openclaw.json` for ports and tokens. Set
 `FLEET_HOST` if agents aren't on `127.0.0.1`. Add or rotate an agent: change
 the OpenClaw config, re-run, redeploy, restart your client.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `FLEET_BRIDGE_AGENTS` | `<repoRoot>/agents.json` | Path to the OpenClaw roster |
-| `FLEET_BRIDGE_HERMES` | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster |
-| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | `5000` | Abort timeout for `agent_health` |
-| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | `60000` | Default invoke timeout when the call omits `timeout_ms` |
+| Variable                         | Default                         | Purpose                                                 |
+| -------------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `FLEET_BRIDGE_AGENTS`            | `<repoRoot>/agents.json`        | Path to the OpenClaw roster                             |
+| `FLEET_BRIDGE_HERMES`            | `<repoRoot>/hermes-agents.json` | Path to the Hermes roster                               |
+| `FLEET_BRIDGE_HEALTH_TIMEOUT_MS` | `5000`                          | Abort timeout for `agent_health`                        |
+| `FLEET_BRIDGE_INVOKE_TIMEOUT_MS` | `60000`                         | Default invoke timeout when the call omits `timeout_ms` |
 
 ## Prove it works
 
